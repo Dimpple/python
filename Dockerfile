@@ -1,19 +1,15 @@
-from flask import Flask, jsonify
-import os
+FROM python:3.12-slim
 
-app = Flask(__name__)
+WORKDIR /app
 
-@app.route("/")
-def home():
-    return jsonify({
-        "message": "Hello from Python in Docker!",
-        "env": os.getenv("APP_ENV", "development")
-    })
+# Install dependencies first for better layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"}), 200
+# Copy application code
+COPY . .
 
-if __name__ == "__main__":
-    # MUST be 0.0.0.0, not localhost, so the container is reachable
-    app.run(host="0.0.0.0", port=8080)
+EXPOSE 8080
+
+# Use gunicorn in production, not the Flask dev server
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "app:app"]
